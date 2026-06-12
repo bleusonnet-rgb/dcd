@@ -1,0 +1,545 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>3分ピッチ PPTX自動生成ツール rev4</title>
+<script src="https://cdn.jsdelivr.net/npm/pptxgenjs@3.12.0/dist/pptxgen.bundle.js"></script>
+<style>
+:root{
+  --ui-font:'Hiragino Kaku Gothic ProN','Yu Gothic UI','Meiryo',sans-serif;
+  --line:#e3e6ea; --muted:#6b7280; --ink:#1f2430; --bg:#eef1f5;
+}
+*{box-sizing:border-box}
+body{font-family:var(--ui-font);background:var(--bg);color:var(--ink);margin:0;padding:24px}
+.container{max-width:1240px;margin:0 auto;background:#fff;border-radius:16px;box-shadow:0 6px 30px rgba(0,0,0,.08);overflow:hidden}
+.head{padding:22px 28px;border-bottom:1px solid var(--line);display:flex;align-items:baseline;gap:12px;flex-wrap:wrap}
+.head h1{font-size:20px;margin:0;font-weight:800;letter-spacing:.02em}
+.head .sub{font-size:12px;color:var(--muted)}
+
+/* タブ（スライドごと入力） */
+.tabs{display:flex;gap:6px;padding:14px 28px 0;flex-wrap:wrap}
+.tab{padding:9px 14px;border:1px solid var(--line);border-bottom:none;border-radius:10px 10px 0 0;
+     background:#f7f8fa;cursor:pointer;font-size:13px;font-weight:700;color:var(--muted);white-space:nowrap}
+.tab .n{display:inline-flex;width:18px;height:18px;border-radius:50%;background:#cdd3db;color:#fff;
+        font-size:11px;align-items:center;justify-content:center;margin-right:6px;vertical-align:-2px}
+.tab.active{background:#fff;color:var(--ink);border-color:var(--line);box-shadow:0 -2px 0 #1f2430 inset}
+.tab.active .n{background:#1f2430}
+
+.body{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.05fr);gap:28px;padding:24px 28px 12px}
+@media(max-width:980px){.body{grid-template-columns:1fr}}
+
+.panel{min-width:0}
+.panel h2{font-size:13px;margin:0 0 14px;color:var(--muted);font-weight:800;letter-spacing:.04em;text-transform:uppercase}
+.field{margin-bottom:15px}
+.field>label{display:block;font-weight:700;font-size:13px;margin-bottom:6px}
+.row{display:flex;gap:10px}
+input[type=text],textarea,select{width:100%;padding:10px 11px;border:1px solid #cfd4db;border-radius:8px;
+  font-family:var(--ui-font);font-size:13px;background:#fff}
+textarea{resize:vertical;min-height:84px;line-height:1.6}
+.hint{font-size:11px;color:var(--muted);margin-top:4px}
+.counter{float:right;font-weight:400}
+
+/* 配色テーマ */
+.themes{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+.theme{border:2px solid #eceef1;border-radius:10px;padding:9px 10px;cursor:pointer;transition:.15s}
+.theme:hover{border-color:#c3c9d2}
+.theme.active{border-color:#1f2430;background:#fafbfc}
+.theme .nm{font-size:11px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sw{display:flex;height:22px;border-radius:6px;overflow:hidden;margin-top:7px;border:1px solid rgba(0,0,0,.06)}
+.sw .b{flex:3}.sw .m{flex:2}.sw .a{flex:1}
+
+/* 画像 */
+.dz{border:2px dashed #c2c8d0;border-radius:10px;padding:22px;text-align:center;color:var(--muted);
+    cursor:pointer;font-size:13px;background:#fafbfc}
+.dz:hover,.dz.over{background:#eef6ff;border-color:#3b82f6;color:#1f2430}
+.thumbs{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:10px}
+.thumb{position:relative;aspect-ratio:1;border-radius:8px;overflow:hidden;border:1px solid var(--line);background:#f1f3f6}
+.thumb img{width:100%;height:100%;object-fit:cover}
+.thumb .x{position:absolute;top:4px;right:4px;width:20px;height:20px;border-radius:50%;background:rgba(0,0,0,.6);
+          color:#fff;border:none;cursor:pointer;font-size:13px;line-height:20px}
+
+/* プレビュー */
+.preview-wrap{position:sticky;top:18px}
+.preview-wrap .cap{font-size:11px;color:var(--muted);font-weight:800;letter-spacing:.04em;margin-bottom:8px;text-transform:uppercase}
+.canvas{position:relative;width:100%;aspect-ratio:16/9;border-radius:10px;overflow:hidden;
+        box-shadow:0 4px 18px rgba(0,0,0,.16);background:#fff}
+.canvas .el{position:absolute;overflow:hidden}
+.canvas .el.txt{display:flex;white-space:pre-wrap;word-break:break-word;line-height:1.32}
+.mini-nav{display:flex;gap:6px;margin-top:10px;justify-content:center}
+.mini-nav button{border:1px solid var(--line);background:#fff;border-radius:7px;padding:6px 10px;font-size:11px;
+  font-weight:700;cursor:pointer;color:var(--muted)}
+.mini-nav button.on{background:#1f2430;color:#fff;border-color:#1f2430}
+.note{font-size:11px;color:var(--muted);text-align:center;margin-top:8px}
+
+.footer{padding:16px 28px 26px;border-top:1px solid var(--line);background:#fafbfc}
+.btn{display:block;width:100%;padding:15px;background:#1f2430;color:#fff;border:none;border-radius:10px;
+  font-size:15px;font-weight:800;cursor:pointer;letter-spacing:.03em}
+.btn:hover{background:#343b49}
+.btn:disabled{background:#9aa1ac;cursor:default}
+.tabpane{display:none}.tabpane.show{display:block}
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="head">
+    <h1>3分ピッチ用 スライド自動生成</h1>
+    <span class="sub">スライドごとに入力 ・ 右側でリアルタイムプレビュー ・ 配色とレイアウトは自動最適化</span>
+  </div>
+
+  <div class="tabs" id="tabs">
+    <div class="tab active" data-tab="global"><span class="n">◎</span>テーマカラー</div>
+    <div class="tab" data-tab="s1"><span class="n">1</span>表紙</div>
+    <div class="tab" data-tab="s2"><span class="n">2</span>課題</div>
+    <div class="tab" data-tab="s3"><span class="n">3</span>提案</div>
+    <div class="tab" data-tab="s4"><span class="n">4</span>接続</div>
+  </div>
+
+  <div class="body">
+    <!-- 入力パネル -->
+    <div class="panel">
+
+      <div class="tabpane show" data-pane="global">
+        <h2>※右のプレビューを見ながら配色を選んでください。表紙と中身が異なります。</h2>
+        <div class="themes" id="themes"></div>
+      </div>
+
+      <div class="tabpane" data-pane="s1">
+        <h2>① 表紙</h2>
+        <div class="field">
+          <label>アイデアのタイトル<span class="counter" id="c_title"></span></label>
+          <textarea id="title" placeholder="例: アンビエント・リマインダー・ファブリック" style="min-height:70px"></textarea>
+          <div class="hint">長い場合は自動で文字サイズを縮小します。1〜2行が最も映えます。</div>
+        </div>
+        <div class="row">
+          <div class="field" style="flex:1"><label>学生番号</label><input type="text" id="studentId" placeholder="例: G123456789"></div>
+          <div class="field" style="flex:1"><label>氏名</label><input type="text" id="studentName" placeholder="例: 山田 太郎"></div>
+        </div>
+      </div>
+
+      <div class="tabpane" data-pane="s2">
+        <h2>② 課題の設定</h2>
+        <div class="field"><label>原理カード</label><input type="text" id="cardA" placeholder="例: 不可視のコンピューティング"></div>
+        <div class="field"><label>状況カード</label><input type="text" id="cardB" placeholder="例: スマホの電池が残り3%"></div>
+        <div class="field">
+          <label>誰のどんな場面の問題か<span class="counter" id="c_problem"></span></label>
+          <textarea id="problem" placeholder="例: 外出先でスマホのバッテリーが僅かになり、連絡が途絶える不安を感じている学生。"></textarea>
+          <div class="hint">目安 120字以内。超えると自動縮小しますが、簡潔だと読みやすくなります。</div>
+        </div>
+      </div>
+
+      <div class="tabpane" data-pane="s3">
+        <h2>③ 提案</h2>
+        <div class="field">
+          <label>提案の中身（概要）<span class="counter" id="c_proposal"></span></label>
+          <textarea id="proposal" placeholder="例: 導電繊維を織り込んだ袖口が、充電状況や通知を微かな振動と光で衣服表面に浮かび上がらせる。"></textarea>
+        </div>
+        <div class="row">
+          <div class="field" style="flex:1"><label>使用ツール</label><input type="text" id="aiTool" placeholder="例: Adobe Firefly"></div>
+          <div class="field" style="flex:1"><label>代表プロンプト</label><input type="text" id="prompt" placeholder="例: Muted textile tech sleeve, glowing..."></div>
+        </div>
+        <div class="field">
+          <label>生成AIのイメージ（最大4枚 / ドラッグ&ドロップ可）</label>
+          <div class="dz" id="dz">ここに画像をドロップ、またはクリックして選択</div>
+          <input type="file" id="file" accept="image/*" multiple style="display:none">
+          <div class="thumbs" id="thumbs"></div>
+          <div class="hint">枚数に応じて右側の配置（1枚=大／2枚=並列／3枚／4枚=グリッド）が自動で切り替わります。</div>
+        </div>
+      </div>
+
+      <div class="tabpane" data-pane="s4">
+        <h2>④ 自身の研究・興味との接続</h2>
+        <div class="field">
+          <label>研究 / 興味 / 特技 / バイト等との繋がり<span class="counter" id="c_connection"></span></label>
+          <textarea id="connection" style="min-height:140px" placeholder="例: 研究テーマ「テキスタイルを利用したインタラクション設計」における非視覚的な通知提示手法として応用できると考えている。"></textarea>
+          <div class="hint">最終ページは濃い背景で締めます。結論として印象に残る一段落を。</div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- プレビュー -->
+    <div class="panel">
+      <div class="preview-wrap">
+        <div class="cap">ライブプレビュー（実際の比率 16:9）</div>
+        <div class="canvas" id="canvas"></div>
+        <div class="mini-nav" id="miniNav"></div>
+        <div class="note">※ 表示はフォント代替による近似です。最終的な見た目はPowerPointで確認してください。</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="footer">
+    <button class="btn" id="genBtn" onclick="generate()">PPTXファイルを生成してダウンロード</button>
+  </div>
+</div>
+
+<script>
+/* ============================================================
+   レイアウトエンジン（プレビューと PPTX 生成の共通ソース）
+   ここを変えれば両方の見た目が同時に変わる。
+   ============================================================ */
+
+/* --- 8 配色テーマ（色はそのまま、使い方で映えさせる） --- */
+const THEMES = [
+  { name:"DCD研クラシック", base:"F5F2F0", main:"3A2D28", accent:"C84B31" },
+  { name:"Dieter Rams (Braun)",   base:"F4F4F4", main:"222222", accent:"FF5500" },
+  { name:"Nordic Minimal (北欧)",  base:"EAECEE", main:"2C3E50", accent:"E6A23C" },
+  { name:"Industrial Teal",       base:"EAF2F4", main:"1A3644", accent:"FF6B6B" },
+  { name:"和モダン (テキスタイル)", base:"F9F6F0", main:"2E3A24", accent:"9E2A2B" },
+  { name:"Muted Bauhaus",         base:"F2EFE9", main:"1D2A44", accent:"D49A15" },
+  { name:"Earthy Sage",           base:"EFF2EE", main:"3D4A3E", accent:"D96B43" },
+  { name:"Cyber Mono",            base:"FAFAFA", main:"111111", accent:"00A8FF" }
+];
+
+/* フォント（ユーザー環境のLINE Seedを想定。無い場合は代替されます） */
+const FONT = { reg:"LINE Seed JP_TTF Regular", bold:"LINE Seed JP_TTF Bold", thin:"LINE Seed JP_TTF Thin" };
+
+const PW = 13.333, PH = 7.5, M = 0.7;
+
+/* --- 色ユーティリティ --- */
+const _h = h => h.replace('#','');
+function toRgb(h){h=_h(h);return [parseInt(h.slice(0,2),16),parseInt(h.slice(2,4),16),parseInt(h.slice(4,6),16)];}
+function toHex(a){return a.map(v=>Math.max(0,Math.min(255,Math.round(v))).toString(16).padStart(2,'0')).join('');}
+function mix(a,b,t){const A=toRgb(a),B=toRgb(b);return toHex(A.map((v,i)=>v+(B[i]-v)*t));}
+function luminance(h){const[r,g,b]=toRgb(h).map(v=>{v/=255;return v<=.03928?v/12.92:Math.pow((v+.055)/1.055,2.4)});return .2126*r+.7152*g+.0722*b;}
+
+/* テーマから派生色を作る（カード面・補助文字色など） */
+function palette(t){
+  const surfaceL = mix(t.base, t.main, 0.06);   // 明背景上のカード面（白浮き防止）
+  const surfaceD = mix(t.main, "FFFFFF", 0.10);  // 暗背景上のカード面
+  const mutedL   = mix(t.main, t.base, 0.34);    // 明背景上の補助文字
+  const mutedD   = mix(t.base, t.main, 0.34);    // 暗背景上の補助文字
+  // アクセントが暗背景で沈む場合は少し明るく（視認性確保）
+  const accentOnDark = luminance(t.accent) < 0.18 ? mix(t.accent,"FFFFFF",0.25) : t.accent;
+  return { base:t.base, main:t.main, accent:t.accent, accentOnDark, surfaceL, surfaceD, mutedL, mutedD };
+}
+
+/* 文字数に応じてサイズを縮める（あふれ防止＋短文は大きく保つ） */
+function fit(text, max, min, capChars){
+  const len = (text||'').replace(/\s/g,'').length;
+  if(len <= capChars) return max;
+  const t = Math.min(1, (len - capChars) / (capChars * 2.5));
+  return Math.round(max - (max - min) * t);
+}
+
+/* 共通ヘッダー（本文/結論ページ）: アクセント番号 + 見出し + 講義名 + ページ */
+function header(P, num, titleText, dark){
+  const titleColor = dark ? P.base : P.main;
+  const sub        = dark ? P.mutedD : P.mutedL;
+  const accent     = dark ? P.accentOnDark : P.accent;
+  return [
+    { kind:'text', x:M, y:0.36, w:8.5, h:0.3, text:'情報・デザイン工学特別講義 II',
+      size:10, color:sub, font:FONT.thin, valign:'middle' },
+    { kind:'text', x:PW-M-1.6, y:0.36, w:1.6, h:0.3, text:num+' / 04',
+      size:10, color:accent, font:FONT.thin, align:'right', valign:'middle' },
+    { kind:'text', x:M, y:0.98, w:1.5, h:0.95, text:num,
+      size:40, color:accent, bold:true, font:FONT.bold, valign:'middle' },
+    { kind:'text', x:M+1.3, y:0.98, w:PW-2*M-1.3, h:0.95, text:titleText,
+      size:fit(titleText,23,17,16), color:titleColor, bold:true, font:FONT.bold, valign:'middle' }
+  ];
+}
+
+/* 画像のグリッド配置（枚数で最適化）＋ 余白をマット(枠)で見せる */
+function imageSlots(n, rx, ry, rw, rh, g){
+  if(n<=0) return [];
+  if(n===1) return [{x:rx,y:ry,w:rw,h:rh}];
+  if(n===2){const w=(rw-g)/2;return [{x:rx,y:ry,w,h:rh},{x:rx+w+g,y:ry,w,h:rh}];}
+  if(n===3){const w=(rw-g)/2,h=(rh-g)/2;return [
+      {x:rx,y:ry,w,h},{x:rx+w+g,y:ry,w,h},{x:rx,y:ry+h+g,w:rw,h}];}
+  const w=(rw-g)/2,h=(rh-g)/2;return [
+    {x:rx,y:ry,w,h},{x:rx+w+g,y:ry,w,h},
+    {x:rx,y:ry+h+g,w,h},{x:rx+w+g,y:ry+h+g,w,h}];
+}
+
+/* === デッキ全体を組み立てる（唯一の真実） === */
+function buildDeck(D, theme){
+  const P = palette(theme);
+  const imgs = D.images || [];
+  const slides = [];
+
+  /* ---------- Slide 1: 表紙（濃い背景・ブックエンド） ---------- */
+  const s1 = { bg:P.main, dark:true, els:[] };
+  s1.els.push(
+    { kind:'text', x:0.85, y:0.85, w:11.6, h:0.35,
+      text:'情報・デザイン工学特別講義 II  ｜  3分ピッチ',
+      size:12, color:P.mutedD, font:FONT.thin },
+    { kind:'rect', x:0.9, y:1.78, w:0.34, h:0.34, fill:P.accentOnDark, radius:0.04 },
+    { kind:'text', x:0.85, y:2.5, w:11.4, h:2.5,
+      text:D.title, ph:'アイデアのタイトル',
+      size:fit(D.title,40,26,16), color:P.base, bold:true, font:FONT.bold, valign:'top', line:1.18 },
+    { kind:'rect', x:0.9, y:6.18, w:0.18, h:0.18, fill:P.accentOnDark, radius:0.02 },
+    { kind:'text', x:1.25, y:6.05, w:11, h:0.45,
+      text:(D.studentId||'学生番号')+'   '+(D.studentName||'氏名'),
+      size:14, color:P.base, font:FONT.reg, valign:'middle' }
+  );
+  slides.push(s1);
+
+  /* ---------- Slide 2: 課題の設定（明背景・カード化） ---------- */
+  const s2 = { bg:P.base, dark:false, els:[ ...header(P,'01','課題の設定',false) ] };
+  const cw=(PW-2*M-0.3)/2, cy=2.2, ch=1.55;
+  const cards=[['原理カード',D.cardA,'引いた原理'],['状況カード',D.cardB,'引いた状況']];
+  cards.forEach((c,i)=>{
+    const cx = M + i*(cw+0.3);
+    s2.els.push(
+      { kind:'rect', x:cx, y:cy, w:cw, h:ch, fill:P.surfaceL, radius:0.1 },
+      { kind:'text', x:cx+0.28, y:cy+0.22, w:cw-0.56, h:0.3, text:c[0],
+        size:11, color:P.accent, bold:true, font:FONT.bold },
+      { kind:'text', x:cx+0.28, y:cy+0.6, w:cw-0.56, h:0.8, text:c[1], ph:c[2],
+        size:fit(c[1],17,13,18), color:P.main, bold:true, font:FONT.bold, valign:'top', line:1.25 }
+    );
+  });
+  const py=4.05;
+  s2.els.push(
+    { kind:'text', x:M, y:py, w:8, h:0.3, text:'誰のどんな場面の問題か',
+      size:12, color:P.mutedL, bold:true, font:FONT.bold },
+    { kind:'rect', x:M, y:py+0.4, w:PW-2*M, h:6.85-(py+0.4), fill:P.surfaceL, radius:0.1 },
+    { kind:'text', x:M+0.32, y:py+0.62, w:PW-2*M-0.64, h:6.85-(py+0.84), text:D.problem,
+      ph:'誰の、どんな場面の問題かを2〜3行で記述します。',
+      size:fit(D.problem,15,12,140), color:P.main, font:FONT.reg, valign:'top', line:1.45 }
+  );
+  slides.push(s2);
+
+  /* ---------- Slide 3: 提案（左テキスト2カード / 右画像グリッド） ---------- */
+  const s3 = { bg:P.base, dark:false, els:[ ...header(P,'02','提案',false) ] };
+  s3.els.push(
+    { kind:'text', x:M+1.3, y:1.9, w:4.3, h:0.4, text:(D.title? '— '+D.title : '— アイデア名'),
+      size:14, color:P.accent, bold:true, font:FONT.bold, valign:'middle' }
+  );
+  const lx=M, lw=5.5, topY=2.55;
+  s3.els.push(
+    { kind:'text', x:lx, y:topY, w:lw, h:0.3, text:'提案の概要',
+      size:11, color:P.mutedL, bold:true, font:FONT.bold },
+    { kind:'rect', x:lx, y:topY+0.35, w:lw, h:2.4, fill:P.surfaceL, radius:0.1 },
+    { kind:'text', x:lx+0.28, y:topY+0.55, w:lw-0.56, h:2.0, text:D.proposal,
+      ph:'提案の中身を簡潔に記述します。',
+      size:fit(D.proposal,14,11,110), color:P.main, font:FONT.reg, valign:'top', line:1.4 },
+    { kind:'text', x:lx, y:5.55, w:lw, h:0.3, text:'使用ツール / プロンプト',
+      size:11, color:P.mutedL, bold:true, font:FONT.bold },
+    { kind:'rect', x:lx, y:5.9, w:lw, h:1.0, fill:P.surfaceL, radius:0.1 },
+    { kind:'text', x:lx+0.28, y:6.06, w:lw-0.56, h:0.72,
+      text:'Tool: '+(D.aiTool||'—')+'\nPrompt: '+(D.prompt||'—'),
+      size:fit((D.aiTool||'')+(D.prompt||''),12,10,70), color:P.mutedL, font:FONT.reg, valign:'top', line:1.35 }
+  );
+  // 右：画像領域（大きく / ほぼ全高でインパクトを最大化）
+  const rx=6.5, ry=0.9, rw=PW-M-rx, rh=6.9-ry, g=0.18;
+  const slots = imageSlots(Math.min(imgs.length,4), rx, ry, rw, rh, g);
+  slots.forEach((sl,i)=>{
+    // スロット内に画像の実アスペクト比で内接させ、中央寄せ（= PPTXで引き伸ばさない）
+    const ar = (imgs[i] && imgs[i].ar && isFinite(imgs[i].ar) && imgs[i].ar>0) ? imgs[i].ar : 1;
+    let iw=sl.w, ih=sl.w/ar; if(ih>sl.h){ ih=sl.h; iw=sl.h*ar; }
+    const ix=sl.x+(sl.w-iw)/2, iy=sl.y+(sl.h-ih)/2;
+    s3.els.push({ kind:'image', x:ix, y:iy, w:iw, h:ih, src:(imgs[i]&&imgs[i].src)||imgs[i], shadow:true });
+  });
+  if(slots.length===0){
+    s3.els.push({ kind:'rect', x:rx, y:ry, w:rw, h:rh, fill:P.surfaceL, radius:0.1 });
+    s3.els.push({ kind:'text', x:rx, y:ry+rh/2-0.3, w:rw, h:0.6, text:'画像を追加してください',
+      size:13, color:P.mutedL, font:FONT.reg, align:'center', valign:'middle' });
+  }
+  slides.push(s3);
+
+  /* ---------- Slide 4: 接続（濃い背景・ブックエンドで締める） ---------- */
+  const s4 = { bg:P.main, dark:true, els:[ ...header(P,'03','自身の研究・興味との接続',true) ] };
+  s4.els.push(
+    { kind:'rect', x:M, y:2.42, w:0.22, h:0.22, fill:P.accentOnDark, radius:0.02 },
+    { kind:'text', x:M+0.4, y:2.32, w:11, h:0.35, text:'研究 / 興味 / 特技 / バイト等との繋がり',
+      size:12, color:P.accentOnDark, bold:true, font:FONT.bold, valign:'middle' },
+    { kind:'rect', x:M, y:2.9, w:PW-2*M, h:3.7, fill:P.surfaceD, radius:0.12 },
+    { kind:'text', x:M+0.45, y:3.2, w:PW-2*M-0.9, h:3.1, text:D.connection,
+      ph:'結論として、自身の研究・興味・特技・アルバイト等との繋がりを一段落で記述します。',
+      size:fit(D.connection,17,13,150), color:P.base, font:FONT.reg, valign:'top', line:1.55 }
+  );
+  slides.push(s4);
+
+  return { slides, P };
+}
+
+/* ============================================================
+   ここから下は UI / プレビュー / 生成（DOM 依存）
+   ============================================================ */
+const D = { studentId:'',studentName:'',title:'',cardA:'',cardB:'',problem:'',
+            proposal:'',aiTool:'',prompt:'',connection:'',images:[] };
+let themeIdx = 0;
+let activeTab = 'global';
+let previewIdx = 0;   // 0..3
+
+/* タブ → 表示するスライド番号 */
+const tabSlide = { global:0, s1:0, s2:1, s3:2, s4:3 };
+
+/* 配色テーマ描画 */
+const themesEl = document.getElementById('themes');
+THEMES.forEach((t,i)=>{
+  const d=document.createElement('div');
+  d.className='theme'+(i===0?' active':'');
+  d.onclick=()=>{ themeIdx=i; document.querySelectorAll('.theme').forEach(e=>e.classList.remove('active')); d.classList.add('active'); render(); };
+  d.innerHTML=`<div class="nm">${t.name}</div>
+    <div class="sw"><div class="b" style="background:#${t.base}"></div>
+    <div class="m" style="background:#${t.main}"></div>
+    <div class="a" style="background:#${t.accent}"></div></div>`;
+  themesEl.appendChild(d);
+});
+
+/* タブ切替 */
+document.querySelectorAll('.tab').forEach(tab=>{
+  tab.onclick=()=>{
+    activeTab = tab.dataset.tab;
+    document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+    tab.classList.add('active');
+    document.querySelectorAll('.tabpane').forEach(p=>p.classList.toggle('show', p.dataset.pane===activeTab));
+    previewIdx = tabSlide[activeTab];
+    render();
+  };
+});
+
+/* 入力バインド */
+const bind = (id, key, counterId, cap) => {
+  const el=document.getElementById(id);
+  el.addEventListener('input', ()=>{
+    D[key]=el.value;
+    if(counterId){
+      const len=el.value.replace(/\s/g,'').length;
+      const c=document.getElementById(counterId);
+      c.textContent = len ? `${len}字` : '';
+      c.style.color = (cap && len>cap) ? '#c84b31' : 'var(--muted)';
+    }
+    render();
+  });
+};
+bind('studentId','studentId'); bind('studentName','studentName');
+bind('title','title','c_title',40);
+bind('cardA','cardA'); bind('cardB','cardB');
+bind('problem','problem','c_problem',120);
+bind('proposal','proposal','c_proposal',110);
+bind('aiTool','aiTool'); bind('prompt','prompt');
+bind('connection','connection','c_connection',200);
+
+/* 画像 D&D */
+const dz=document.getElementById('dz'), file=document.getElementById('file'), thumbs=document.getElementById('thumbs');
+dz.onclick=()=>file.click();
+dz.ondragover=e=>{e.preventDefault();dz.classList.add('over');};
+dz.ondragleave=()=>dz.classList.remove('over');
+dz.ondrop=e=>{e.preventDefault();dz.classList.remove('over');addFiles(e.dataTransfer.files);};
+file.onchange=e=>addFiles(e.target.files);
+function addFiles(list){
+  [...list].forEach(f=>{
+    if(D.images.length>=4||!f.type.startsWith('image/'))return;
+    const r=new FileReader();
+    r.onload=ev=>{
+      const src=ev.target.result;
+      const im=new Image();
+      im.onload=()=>{                              // 実ピクセルから縦横比を取得
+        const ar=(im.naturalWidth&&im.naturalHeight)?im.naturalWidth/im.naturalHeight:1;
+        D.images.push({src, ar}); drawThumbs(); render();
+      };
+      im.onerror=()=>{ D.images.push({src, ar:1}); drawThumbs(); render(); };
+      im.src=src;
+    };
+    r.readAsDataURL(f);
+  });
+}
+function drawThumbs(){
+  thumbs.innerHTML='';
+  D.images.forEach((im,i)=>{
+    const d=document.createElement('div');d.className='thumb';
+    d.innerHTML=`<img src="${im.src}"><button class="x" title="削除">×</button>`;
+    d.querySelector('.x').onclick=()=>{ D.images.splice(i,1); drawThumbs(); render(); };
+    thumbs.appendChild(d);
+  });
+}
+
+/* === プレビュー描画（共通スペックを DOM に変換） === */
+const canvas=document.getElementById('canvas');
+function render(){
+  const { slides } = buildDeck(D, THEMES[themeIdx]);
+  const slide = slides[previewIdx];
+  const W = canvas.clientWidth || 600;
+  const S = W / PW;                 // px / inch
+  const ptPx = s => (s/72)*S;       // pt → px（このプレビュー縮尺で）
+  canvas.style.background = '#'+slide.bg;
+  canvas.innerHTML='';
+  slide.els.forEach(e=>{
+    const d=document.createElement('div');
+    d.className='el'+(e.kind==='text'?' txt':'');
+    d.style.left=(e.x*S)+'px'; d.style.top=(e.y*S)+'px';
+    d.style.width=(e.w*S)+'px'; d.style.height=(e.h*S)+'px';
+    if(e.kind==='rect'){
+      d.style.background='#'+e.fill;
+      if(e.radius) d.style.borderRadius=(e.radius*S)+'px';
+    } else if(e.kind==='image'){
+      d.style.borderRadius=((e.radius||0.04)*S)+'px';
+      if(e.src){ d.style.backgroundImage=`url(${e.src})`; d.style.backgroundSize='contain';
+                 d.style.backgroundPosition='center'; d.style.backgroundRepeat='no-repeat'; }
+      if(e.shadow) d.style.boxShadow='0 2px 8px rgba(0,0,0,.22)';
+    } else { // text
+      const empty = !e.text || !String(e.text).trim();
+      d.textContent = empty ? (e.ph||'') : e.text;
+      d.style.color='#'+e.color;
+      d.style.opacity = empty ? .38 : 1;
+      d.style.fontSize=ptPx(e.size)+'px';
+      d.style.fontWeight=e.bold?800:400;
+      d.style.lineHeight=e.line||1.32;
+      d.style.justifyContent = e.align==='right'?'flex-end':e.align==='center'?'center':'flex-start';
+      d.style.alignItems = e.valign==='middle'?'center':e.valign==='bottom'?'flex-end':'flex-start';
+      d.style.textAlign = e.align||'left';
+    }
+    canvas.appendChild(d);
+  });
+  // ミニナビ
+  const nav=document.getElementById('miniNav');
+  nav.innerHTML='';
+  ['表紙','課題','提案','接続'].forEach((nm,i)=>{
+    const b=document.createElement('button');
+    b.textContent=(i+1)+'. '+nm; if(i===previewIdx)b.classList.add('on');
+    b.onclick=()=>{ previewIdx=i; render(); };
+    nav.appendChild(b);
+  });
+}
+window.addEventListener('resize', render);
+
+/* === PPTX 生成（共通スペックを pptxgenjs に変換） === */
+function generate(){
+  const btn=document.getElementById('genBtn');
+  btn.disabled=true; btn.textContent='生成中…';
+  try{
+    const pptx=new PptxGenJS();
+    pptx.defineLayout({ name:'FIXED_16x9', width:PW, height:PH });
+    pptx.layout='FIXED_16x9';
+    const { slides } = buildDeck(D, THEMES[themeIdx]);
+
+    slides.forEach(sl=>{
+      const slide=pptx.addSlide();
+      slide.background={ color: sl.bg };
+      sl.els.forEach(e=>{
+        if(e.kind==='rect'){
+          slide.addShape(pptx.ShapeType.roundRect, {
+            x:e.x, y:e.y, w:e.w, h:e.h, fill:{color:e.fill},
+            line:{ color:e.fill, width:0 }, rectRadius:(e.radius||0)
+          });
+        } else if(e.kind==='image' && e.src){
+          slide.addImage({ data:e.src, x:e.x, y:e.y, w:e.w, h:e.h,
+            shadow: e.shadow ? { type:'outer', blur:4, offset:2, angle:90, color:'000000', opacity:0.22 } : undefined
+          });
+        } else if(e.kind==='text'){
+          const txt = (e.text && String(e.text).trim()) ? e.text : '';
+          slide.addText(txt, {
+            x:e.x, y:e.y, w:e.w, h:e.h,
+            fontFace:e.font, fontSize:e.size, color:e.color,
+            bold:!!e.bold, align:e.align||'left', valign:e.valign||'top',
+            lineSpacingMultiple:e.line||1.2, wrap:true, autoFit:true, margin:0
+          });
+        }
+      });
+    });
+
+    const fname=`${D.studentId||'学生番号'}_${D.studentName||'氏名'}_3分ピッチ資料`;
+    pptx.writeFile({ fileName:fname }).then(()=>{ btn.disabled=false; btn.textContent='PPTXファイルを生成してダウンロード'; });
+  }catch(err){
+    alert('生成中にエラーが発生しました: '+err.message);
+    btn.disabled=false; btn.textContent='PPTXファイルを生成してダウンロード';
+  }
+}
+
+render();
+</script>
+</body>
+</html>
